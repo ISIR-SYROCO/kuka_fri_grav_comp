@@ -17,15 +17,24 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
     public:
         KukaFriGravCompRTNET(std::string const& name);
 
+		void setTrajectory(int traj);
 
         void updateHook();
 
         void setNumObs(unsigned int numObs);
 
+		void initializeCommand();
+
+		void connectPorts();
+
         std::vector<double> m_joint_vel_command;
+		std::vector<double> m_joint_pos;
+        std::vector<double> tau;
 
         MovingMean mean;
         int direction;
+
+		int trajectory;
 };
 
 
