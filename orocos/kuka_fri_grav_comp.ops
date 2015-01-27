@@ -1,0 +1,35 @@
+import("lwr_fri")
+import("kuka_fri_grav_comp")
+
+loadComponent("lwr", "lwr_fri::FRIRTNetComponent")
+loadComponent("KukaFGC", "KukaFriGravCompRTNET")
+
+setActivity("lwr", 0, 99, ORO_SCHED_RT)
+setActivity("KukaFGC", 0.001, 90, ORO_SCHED_RT)
+
+lwr.local_port = 49938
+lwr.configure
+
+connectPeers("lwr","KukaDemo")
+KukaFGC.setPeer("lwr")
+
+var ConnPolicy cp
+//Only last data written is accessible
+cp.type = DATA
+//Use mutexes
+cp.lock_policy = LOCKED
+
+//Port connection
+KukaFGC.connectPorts()
+
+
+KukaFGC.configure
+KukaFGC.friReset
+
+lwr.control_mode=7
+lwr.start
+
+
+//KukaFGC.setControlStrategy(7)
+//KukaFGC.start
+
