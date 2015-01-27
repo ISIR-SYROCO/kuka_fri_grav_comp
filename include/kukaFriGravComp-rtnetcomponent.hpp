@@ -28,12 +28,19 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 
 		void connectPorts();
 
+		void dumpLog(std::string filename);
+
         std::vector<double> m_joint_vel_command;
 		std::vector<double> m_joint_pos;
         std::vector<double> tau;
+		std::vector<double> estExtTcpWrench;
+
+		std::vector< std::vector<double> > log_estExtTcpWrench;
 
         MovingMean mean;
         int direction;
+
+		int iteration;
 
 		int trajectory;
 };

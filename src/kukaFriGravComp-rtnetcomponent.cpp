@@ -6,17 +6,21 @@
 #include "kukaFriGravComp-rtnetcomponent.hpp"
 #include <rtt/Component.hpp>
 #include <iostream>
+#include <fstream>
 
 KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetExampleAbstract(name){
     this->addOperation("setNumObs", &KukaFriGravCompRTNET::setNumObs, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
     this->addOperation("setStiffness", &KukaFriGravCompRTNET::setStiffness, this, RTT::OwnThread);
     this->addOperation("connectPorts", &KukaFriGravCompRTNET::connectPorts, this, RTT::OwnThread);
+    this->addOperation("dumpLog", &KukaFriGravCompRTNET::dumpLog, this, RTT::OwnThread);
 
     direction = 1;
     setNumObs(20);
 
 	trajectory = 0;
+
+	iteration = 0;
 
     m_joint_vel_command.resize(LWRDOF);
     std::fill(m_joint_vel_command.begin(), m_joint_vel_command.end(), 0.0);
@@ -26,12 +30,36 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 
     tau.resize(LWRDOF);
     std::fill(tau.begin(), tau.end(), 0.0);
+
+	estExtTcpWrench.resize(6);
+    std::fill(estExtTcpWrench.begin(), estExtTcpWrench.end(), 0.0);
+
+	log_estExtTcpWrench.resize(100);
 }
 
 void KukaFriGravCompRTNET::updateHook(){
    fri_frm_krl = m_fromFRI.get(); 
 
    RTT::FlowStatus joint_state_fs = iport_msr_joint_pos.read(m_joint_pos);
+
+   if(iport_cart_wrench.connected() && ((iteration % 1000) == 0)){
+	   geometry_msgs::Wrench wrench;
+	   RTT::FlowStatus est_ext_tcp_wrench_fs = iport_cart_wrench.read(wrench);
+	   if (est_ext_tcp_wrench_fs == RTT::NewData){
+		   estExtTcpWrench[0] = wrench.force.x;
+		   estExtTcpWrench[1] = wrench.force.y;
+		   estExtTcpWrench[2] = wrench.force.z;
+		   estExtTcpWrench[3] = wrench.torque.x;
+		   estExtTcpWrench[4] = wrench.torque.y;
+		   estExtTcpWrench[5] = wrench.torque.z;
+
+		   log_estExtTcpWrench.push_back(estExtTcpWrench);
+	   }
+   }
+   else{
+	   estExtTcpWrench.assign(6, 0.0);
+
+   }
 
    //if command mode
    if(fri_frm_krl.intData[0] == 1){ 
@@ -56,6 +84,7 @@ void KukaFriGravCompRTNET::updateHook(){
 	   oport_joint_position.write(m_joint_pos);
    }
 
+   iteration++;
 }
 
 void KukaFriGravCompRTNET::setTrajectory(int traj){
@@ -140,6 +169,21 @@ void KukaFriGravCompRTNET::setStiffness(double s, double d){
 		oport_joint_impedance.write(joint_impedance_command);
     }
 
+}
+
+void KukaFriGravCompRTNET::dumpLog(std::string filename){
+	std::ofstream of;
+	of.open(filename.c_str());
+	std::vector< std::vector<double> >::iterator it;
+	for(it = log_estExtTcpWrench.begin(); it != log_estExtTcpWrench.end(); ++it){
+		for(int i = 0; i < 6; ++i){
+			of << (*it)[i] << " ";
+		}
+		of << std::endl;
+	}
+
+	of.close();
+	return;
 }
 
 ORO_CREATE_COMPONENT(KukaFriGravCompRTNET)
