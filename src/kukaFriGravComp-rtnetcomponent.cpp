@@ -41,6 +41,7 @@ void KukaFriGravCompRTNET::updateHook(){
    fri_frm_krl = m_fromFRI.get(); 
 
    RTT::FlowStatus joint_state_fs = iport_msr_joint_pos.read(m_joint_pos);
+   RTT::FlowStatus cart_pos_fs = iport_cart_pos.read(m_cart_pos);
 
    if(iport_cart_wrench.connected() && ((iteration % 1000) == 0)){
 	   geometry_msgs::Wrench wrench;
@@ -52,6 +53,13 @@ void KukaFriGravCompRTNET::updateHook(){
 		   estExtTcpWrench[3] = wrench.torque.x;
 		   estExtTcpWrench[4] = wrench.torque.y;
 		   estExtTcpWrench[5] = wrench.torque.z;
+
+		   KDL::Vector v(wrench.force.x, wrench.force.y, wrench.force.y);
+		   KDL::Rotation cart_orientation = KDL::Rotation::Quaternion((double)m_cart_pos.orientation.x,
+				   (double)m_cart_pos.orientation.y,
+				   (double)m_cart_pos.orientation.z,
+				   (double)m_cart_pos.orientation.w);
+		   v = cart_orientation * v;
 
 		   log_estExtTcpWrench.push_back(estExtTcpWrench);
 	   }
