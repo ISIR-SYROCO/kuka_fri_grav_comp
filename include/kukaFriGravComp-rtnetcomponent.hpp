@@ -19,6 +19,8 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 
 		void setTrajectory(int traj);
 		void setStiffness(double s, double d);
+		void setStiffness1();
+		void setStiffness2();
 
         void updateHook();
 

@@ -12,6 +12,8 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addOperation("setNumObs", &KukaFriGravCompRTNET::setNumObs, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
     this->addOperation("setStiffness", &KukaFriGravCompRTNET::setStiffness, this, RTT::OwnThread);
+    this->addOperation("s1", &KukaFriGravCompRTNET::setStiffness1, this, RTT::OwnThread);
+    this->addOperation("s2", &KukaFriGravCompRTNET::setStiffness2, this, RTT::OwnThread);
     this->addOperation("connectPorts", &KukaFriGravCompRTNET::connectPorts, this, RTT::OwnThread);
     this->addOperation("dumpLog", &KukaFriGravCompRTNET::dumpLog, this, RTT::OwnThread);
 
@@ -47,20 +49,20 @@ void KukaFriGravCompRTNET::updateHook(){
 	   geometry_msgs::Wrench wrench;
 	   RTT::FlowStatus est_ext_tcp_wrench_fs = iport_cart_wrench.read(wrench);
 	   if (est_ext_tcp_wrench_fs == RTT::NewData){
-		   estExtTcpWrench[0] = wrench.force.x;
-		   estExtTcpWrench[1] = wrench.force.y;
-		   estExtTcpWrench[2] = wrench.force.z;
-		   estExtTcpWrench[3] = wrench.torque.x;
-		   estExtTcpWrench[4] = wrench.torque.y;
-		   estExtTcpWrench[5] = wrench.torque.z;
 
 		   KDL::Vector v(wrench.force.x, wrench.force.y, wrench.force.y);
 		   KDL::Rotation cart_orientation = KDL::Rotation::Quaternion((double)m_cart_pos.orientation.x,
 				   (double)m_cart_pos.orientation.y,
 				   (double)m_cart_pos.orientation.z,
 				   (double)m_cart_pos.orientation.w);
-		   v = cart_orientation * v;
+		   v = cart_orientation.Inverse() * v;
 
+		   estExtTcpWrench[0] = v.x();
+		   estExtTcpWrench[1] = v.y();
+		   estExtTcpWrench[2] = v.z();
+		   estExtTcpWrench[3] = wrench.torque.x;
+		   estExtTcpWrench[4] = wrench.torque.y;
+		   estExtTcpWrench[5] = wrench.torque.z;
 		   log_estExtTcpWrench.push_back(estExtTcpWrench);
 	   }
    }
@@ -109,6 +111,7 @@ void KukaFriGravCompRTNET::connectPorts(){
 	connectOJointPosition();
 	connectOJointTorque();
 	connectIEstExtTcpWrench();
+	connectIMsrCartPos();
 }
 
 void KukaFriGravCompRTNET::initializeCommand(){
@@ -177,6 +180,14 @@ void KukaFriGravCompRTNET::setStiffness(double s, double d){
 		oport_joint_impedance.write(joint_impedance_command);
     }
 
+}
+
+void KukaFriGravCompRTNET::setStiffness1(){
+	setStiffness(250, 0.5);
+}
+
+void KukaFriGravCompRTNET::setStiffness2(){
+	setStiffness(17000, 0.9);
 }
 
 void KukaFriGravCompRTNET::dumpLog(std::string filename){
