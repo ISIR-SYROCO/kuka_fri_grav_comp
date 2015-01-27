@@ -10,6 +10,7 @@
 KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetExampleAbstract(name){
     this->addOperation("setNumObs", &KukaFriGravCompRTNET::setNumObs, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
+    this->addOperation("setStiffness", &KukaFriGravCompRTNET::setStiffness, this, RTT::OwnThread);
     this->addOperation("connectPorts", &KukaFriGravCompRTNET::connectPorts, this, RTT::OwnThread);
 
     direction = 1;
@@ -70,6 +71,7 @@ void KukaFriGravCompRTNET::connectPorts(){
 	connectODesJntImpedance();
 	connectOJointPosition();
 	connectOJointTorque();
+	connectIEstExtTcpWrench();
 }
 
 void KukaFriGravCompRTNET::initializeCommand(){
@@ -126,4 +128,18 @@ void KukaFriGravCompRTNET::initializeCommand(){
 		oport_joint_impedance.write(joint_impedance_command);
     }
 }
+
+void KukaFriGravCompRTNET::setStiffness(double s, double d){
+    if (oport_joint_impedance.connected()){
+        lwr_fri::FriJointImpedance joint_impedance_command;
+		for(unsigned int i = 0; i < LWRDOF; i++){
+			joint_impedance_command.stiffness[i] = s;
+			joint_impedance_command.damping[i] = d;
+		}
+
+		oport_joint_impedance.write(joint_impedance_command);
+    }
+
+}
+
 ORO_CREATE_COMPONENT(KukaFriGravCompRTNET)
