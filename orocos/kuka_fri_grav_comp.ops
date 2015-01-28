@@ -2,16 +2,16 @@ import("lwr_fri")
 import("kuka_fri_grav_comp")
 
 loadComponent("lwr", "lwr_fri::FRIRTNetComponent")
-loadComponent("KukaFGC", "KukaFriGravCompRTNET")
+loadComponent("KukaDemo", "KukaFriGravCompRTNET")
 
 setActivity("lwr", 0, 99, ORO_SCHED_RT)
-setActivity("KukaFGC", 0.001, 90, ORO_SCHED_RT)
+setActivity("KukaDemo", 0.002, 90, ORO_SCHED_RT)
 
 lwr.local_port = 49938
 lwr.configure
 
 connectPeers("lwr","KukaDemo")
-KukaFGC.setPeer("lwr")
+KukaDemo.setPeer("lwr")
 
 var ConnPolicy cp
 //Only last data written is accessible
@@ -20,16 +20,17 @@ cp.type = DATA
 cp.lock_policy = LOCKED
 
 //Port connection
-KukaFGC.connectPorts()
+connect("lwr.events", "KukaDemo.Events_i", cp)
+KukaDemo.connectPorts()
 
 
-KukaFGC.configure
-KukaFGC.friReset
+KukaDemo.configure
+KukaDemo.friReset
 
 lwr.control_mode=7
 lwr.start
 
 
-//KukaFGC.setControlStrategy(7)
-//KukaFGC.start
+//KukaDemo.setControlStrategy(7)
+//KukaDemo.start
 
