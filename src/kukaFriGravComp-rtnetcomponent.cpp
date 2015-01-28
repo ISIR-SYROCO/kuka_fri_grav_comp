@@ -18,7 +18,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addOperation("dumpLog", &KukaFriGravCompRTNET::dumpLog, this, RTT::OwnThread);
 
     direction = 1;
-    setNumObs(20);
+    setNumObs(2000);
 
 	trajectory = 0;
 
@@ -36,7 +36,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 	estExtTcpWrench.resize(6);
     std::fill(estExtTcpWrench.begin(), estExtTcpWrench.end(), 0.0);
 
-	log_estExtTcpWrench.resize(100);
+	//log_estExtTcpWrench.resize(100);
 }
 
 void KukaFriGravCompRTNET::updateHook(){
@@ -45,7 +45,7 @@ void KukaFriGravCompRTNET::updateHook(){
    RTT::FlowStatus joint_state_fs = iport_msr_joint_pos.read(m_joint_pos);
    RTT::FlowStatus cart_pos_fs = iport_cart_pos.read(m_cart_pos);
 
-   if(iport_cart_wrench.connected() && ((iteration % 1000) == 0)){
+   if(iport_cart_wrench.connected() && ((iteration % 10) == 0)){
 	   geometry_msgs::Wrench wrench;
 	   RTT::FlowStatus est_ext_tcp_wrench_fs = iport_cart_wrench.read(wrench);
 	   if (est_ext_tcp_wrench_fs == RTT::NewData){
@@ -81,7 +81,8 @@ void KukaFriGravCompRTNET::updateHook(){
 			   direction = 1;
 		   }
 
-		   tau[2] = mean.getMean( 0.4 * direction );
+		   tau[2] = mean.getMean( 2 * direction );
+		   log_tau.push_back(tau);
 	   }
 	   else{
 		   std::fill(tau.begin(), tau.end(), 0.0);
@@ -89,7 +90,6 @@ void KukaFriGravCompRTNET::updateHook(){
 
 	   oport_add_joint_trq.write(tau);
    }
-
    if(joint_state_fs == RTT::NewData){
 	   oport_joint_position.write(m_joint_pos);
    }
@@ -161,8 +161,8 @@ void KukaFriGravCompRTNET::initializeCommand(){
     if (oport_joint_impedance.connected()){
         lwr_fri::FriJointImpedance joint_impedance_command;
 		for(unsigned int i = 0; i < LWRDOF; i++){
-			joint_impedance_command.stiffness[i] = 1700;
-			joint_impedance_command.damping[i] = 0.9;
+			joint_impedance_command.stiffness[i] = 1000;
+			joint_impedance_command.damping[i] = 0.5;
 		}
 
 		oport_joint_impedance.write(joint_impedance_command);
@@ -178,6 +178,7 @@ void KukaFriGravCompRTNET::setStiffness(double s, double d){
 		}
 
 		oport_joint_impedance.write(joint_impedance_command);
+		std::cout << "Joint impedance " << s << std::endl;
     }
 
 }
@@ -187,21 +188,33 @@ void KukaFriGravCompRTNET::setStiffness1(){
 }
 
 void KukaFriGravCompRTNET::setStiffness2(){
-	setStiffness(17000, 0.9);
+	setStiffness(1700, 0.9);
 }
 
-void KukaFriGravCompRTNET::dumpLog(std::string filename){
+void KukaFriGravCompRTNET::dumpLog(std::string filename, std::string filename2){
 	std::ofstream of;
 	of.open(filename.c_str());
 	std::vector< std::vector<double> >::iterator it;
 	for(it = log_estExtTcpWrench.begin(); it != log_estExtTcpWrench.end(); ++it){
-		for(int i = 0; i < 6; ++i){
+		for(int i = 0; i < 3; ++i){
 			of << (*it)[i] << " ";
 		}
+		of << std::sqrt((*it)[0]*(*it)[0] + (*it)[1]*(*it)[1] + (*it)[2]*(*it)[2]); 
 		of << std::endl;
 	}
 
 	of.close();
+
+	std::ofstream of2;
+	of2.open(filename2.c_str());
+	for(it = log_tau.begin(); it != log_tau.end(); ++it){
+		for(int i = 0; i < 7; ++i){
+			of2 << (*it)[i] << " ";
+		}
+		of2 << std::endl;
+	}
+
+	of2.close();
 	return;
 }
 

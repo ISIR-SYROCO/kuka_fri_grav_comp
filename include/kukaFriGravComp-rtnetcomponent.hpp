@@ -30,11 +30,12 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 
 		void connectPorts();
 
-		void dumpLog(std::string filename);
+		void dumpLog(std::string filename, std::string filename2);
 
         std::vector<double> m_joint_vel_command;
 		std::vector<double> m_joint_pos;
         std::vector<double> tau;
+        std::vector< std::vector<double> > log_tau;
 		std::vector<double> estExtTcpWrench;
 		geometry_msgs::Pose m_cart_pos;
 
