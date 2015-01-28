@@ -18,6 +18,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
         KukaFriGravCompRTNET(std::string const& name);
 
 		void setTrajectory(int traj);
+		void setBlock(int value);
 		void setStiffness(double s, double d);
 		void setStiffness1();
 		void setStiffness2();
@@ -53,6 +54,8 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
         int direction;
 
 		int iteration;
+
+		int block;
 
 		int trajectory;
 		int pauseTrajectory;

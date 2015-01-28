@@ -13,16 +13,19 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addOperation("setNumObsTau", &KukaFriGravCompRTNET::setNumObsTau, this, RTT::OwnThread);
     this->addOperation("setNumObsForce", &KukaFriGravCompRTNET::setNumObsForce, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
+    this->addOperation("setBlock", &KukaFriGravCompRTNET::setBlock, this, RTT::OwnThread);
     this->addOperation("setStiffness", &KukaFriGravCompRTNET::setStiffness, this, RTT::OwnThread);
     this->addOperation("s1", &KukaFriGravCompRTNET::setStiffness1, this, RTT::OwnThread);
     this->addOperation("s2", &KukaFriGravCompRTNET::setStiffness2, this, RTT::OwnThread);
     this->addOperation("connectPorts", &KukaFriGravCompRTNET::connectPorts, this, RTT::OwnThread);
     this->addOperation("dumpLog", &KukaFriGravCompRTNET::dumpLog, this, RTT::OwnThread);
 
+
     direction = 1;
     setNumObsTau(2000);
     setNumObsForce(40);
 
+	block = 0;
 	trajectory = 0;
 	pauseTrajectory = 0;
 
@@ -110,16 +113,22 @@ void KukaFriGravCompRTNET::updateHook(){
 
 		   tau[2] = tauMean.getMean( 2 * direction );
 		   tau[4] = tauMean.getMean( 2 * direction );
-		   log_tau.push_back(tau);
 	   }
 	   else{
+		   if((trajectory == 1) && (pauseTrajectory == 1)){
+			   tau[2] = tauMean.getMean( 0.0 );
+			   tau[4] = tauMean.getMean( 0.0 );
+		   }
 		   std::fill(tau.begin(), tau.end(), 0.0);
 	   }
 
 	   oport_add_joint_trq.write(tau);
+	   log_tau.push_back(tau);
    }
-   if(joint_state_fs == RTT::NewData){
-   	   oport_joint_position.write(m_joint_pos);
+   if((joint_state_fs == RTT::NewData)){
+	   if(block == 0){
+		   oport_joint_position.write(m_joint_pos);
+	   }
    }
 
    iteration++;
@@ -127,6 +136,10 @@ void KukaFriGravCompRTNET::updateHook(){
 
 void KukaFriGravCompRTNET::setTrajectory(int traj){
 	trajectory = traj;
+}
+
+void KukaFriGravCompRTNET::setBlock(int value){
+	block = value;
 }
 
 void KukaFriGravCompRTNET::setNumObsTau(unsigned int numObs){
@@ -221,7 +234,7 @@ void KukaFriGravCompRTNET::setStiffness1(){
 }
 
 void KukaFriGravCompRTNET::setStiffness2(){
-	setStiffness(1700, 0.9);
+	setStiffness(2000, 0.9);
 }
 
 void KukaFriGravCompRTNET::dumpLog(std::string filename, std::string filename2){
