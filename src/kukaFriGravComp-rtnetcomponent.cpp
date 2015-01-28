@@ -21,14 +21,14 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 
     direction = 1;
     setNumObsTau(2000);
-    setNumObsForce(20);
+    setNumObsForce(40);
 
 	trajectory = 0;
 	pauseTrajectory = 0;
 
 	iteration = 0;
 
-	forceThreshold = 3.0;
+	forceThreshold = 5.0;
 
     m_joint_vel_command.resize(LWRDOF);
     std::fill(m_joint_vel_command.begin(), m_joint_vel_command.end(), 0.0);
@@ -39,10 +39,12 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     tau.resize(LWRDOF);
     std::fill(tau.begin(), tau.end(), 0.0);
 
+    est_tau.resize(LWRDOF);
+    std::fill(est_tau.begin(), est_tau.end(), 0.0);
+
 	estExtTcpWrench.resize(3);
     std::fill(estExtTcpWrench.begin(), estExtTcpWrench.end(), 0.0);
 
-	//log_estExtTcpWrench.resize(100);
 }
 
 void KukaFriGravCompRTNET::updateHook(){
@@ -50,6 +52,11 @@ void KukaFriGravCompRTNET::updateHook(){
 
    RTT::FlowStatus joint_state_fs = iport_msr_joint_pos.read(m_joint_pos);
    RTT::FlowStatus cart_pos_fs = iport_cart_pos.read(m_cart_pos);
+
+   if(iport_est_ext_joint_trq.connected()){
+	   RTT::FlowStatus est_tau_fs = iport_est_ext_joint_trq.read(est_tau);
+	   log_est_tau.push_back(est_tau);
+   }
 
    if(iport_cart_wrench.connected()){
 	   geometry_msgs::Wrench wrench;
@@ -73,13 +80,13 @@ void KukaFriGravCompRTNET::updateHook(){
 		   if(trajectory == 1){
 			   if((extForceMean.getMean(v.Norm()) > forceThreshold)){
 				   if(pauseTrajectory == 0){
-					   std::cout << "GravComp\n";
+					   //std::cout << "GravComp\n";
 					   pauseTrajectory = 1;
 				   }
 			   }
 			   else{
 				   if(pauseTrajectory == 1){
-					   std::cout << "Traj\n";
+					   //std::cout << "Traj\n";
 					   pauseTrajectory = 0;
 				   }
 			   }
@@ -94,14 +101,15 @@ void KukaFriGravCompRTNET::updateHook(){
    //if command mode
    if(fri_frm_krl.intData[0] == 1){ 
 	   if((trajectory == 1) && (pauseTrajectory == 0)){
-		   if(m_joint_pos[2] > 1.0471975512 && direction == 1){
+		   if(m_joint_pos[2] > 0.41975512 && direction == 1){
 			   direction = -1;
 		   }
-		   else if( m_joint_pos[2] < -1.0471975512 && direction == -1){
+		   else if( m_joint_pos[2] < -0.41975512 && direction == -1){
 			   direction = 1;
 		   }
 
 		   tau[2] = tauMean.getMean( 2 * direction );
+		   tau[4] = tauMean.getMean( 2 * direction );
 		   log_tau.push_back(tau);
 	   }
 	   else{
@@ -111,7 +119,7 @@ void KukaFriGravCompRTNET::updateHook(){
 	   oport_add_joint_trq.write(tau);
    }
    if(joint_state_fs == RTT::NewData){
-	   oport_joint_position.write(m_joint_pos);
+   	   oport_joint_position.write(m_joint_pos);
    }
 
    iteration++;
@@ -130,6 +138,7 @@ void KukaFriGravCompRTNET::setNumObsForce(unsigned int numObs){
 }
 
 void KukaFriGravCompRTNET::connectPorts(){
+	connectIEstExtJntTrq();
     connectIMsrJntPos();
 	connectODesJntImpedance();
 	connectOJointPosition();
@@ -185,8 +194,8 @@ void KukaFriGravCompRTNET::initializeCommand(){
     if (oport_joint_impedance.connected()){
         lwr_fri::FriJointImpedance joint_impedance_command;
 		for(unsigned int i = 0; i < LWRDOF; i++){
-			joint_impedance_command.stiffness[i] = 1000;
-			joint_impedance_command.damping[i] = 0.5;
+			joint_impedance_command.stiffness[i] = 2000;
+			joint_impedance_command.damping[i] = 0.9;
 		}
 
 		oport_joint_impedance.write(joint_impedance_command);
@@ -239,6 +248,18 @@ void KukaFriGravCompRTNET::dumpLog(std::string filename, std::string filename2){
 	}
 
 	of2.close();
+
+	std::ofstream of3;
+	of3.open("est_tau");
+	for(it = log_est_tau.begin(); it != log_est_tau.end(); ++it){
+		for(int i = 0; i < 7; ++i){
+			of3 << (*it)[i] << " ";
+		}
+		of3 << std::endl;
+	}
+
+	of3.close();
+
 	return;
 }
 
