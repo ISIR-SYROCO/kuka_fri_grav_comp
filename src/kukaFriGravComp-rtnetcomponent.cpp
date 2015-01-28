@@ -9,7 +9,9 @@
 #include <fstream>
 
 KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetExampleAbstract(name){
-    this->addOperation("setNumObs", &KukaFriGravCompRTNET::setNumObs, this, RTT::OwnThread);
+    this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
+    this->addOperation("setNumObsTau", &KukaFriGravCompRTNET::setNumObsTau, this, RTT::OwnThread);
+    this->addOperation("setNumObsForce", &KukaFriGravCompRTNET::setNumObsForce, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
     this->addOperation("setStiffness", &KukaFriGravCompRTNET::setStiffness, this, RTT::OwnThread);
     this->addOperation("s1", &KukaFriGravCompRTNET::setStiffness1, this, RTT::OwnThread);
@@ -18,11 +20,15 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addOperation("dumpLog", &KukaFriGravCompRTNET::dumpLog, this, RTT::OwnThread);
 
     direction = 1;
-    setNumObs(2000);
+    setNumObsTau(2000);
+    setNumObsForce(20);
 
 	trajectory = 0;
+	pauseTrajectory = 0;
 
 	iteration = 0;
+
+	forceThreshold = 3.0;
 
     m_joint_vel_command.resize(LWRDOF);
     std::fill(m_joint_vel_command.begin(), m_joint_vel_command.end(), 0.0);
@@ -33,7 +39,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     tau.resize(LWRDOF);
     std::fill(tau.begin(), tau.end(), 0.0);
 
-	estExtTcpWrench.resize(6);
+	estExtTcpWrench.resize(3);
     std::fill(estExtTcpWrench.begin(), estExtTcpWrench.end(), 0.0);
 
 	//log_estExtTcpWrench.resize(100);
@@ -45,7 +51,7 @@ void KukaFriGravCompRTNET::updateHook(){
    RTT::FlowStatus joint_state_fs = iport_msr_joint_pos.read(m_joint_pos);
    RTT::FlowStatus cart_pos_fs = iport_cart_pos.read(m_cart_pos);
 
-   if(iport_cart_wrench.connected() && ((iteration % 10) == 0)){
+   if(iport_cart_wrench.connected()){
 	   geometry_msgs::Wrench wrench;
 	   RTT::FlowStatus est_ext_tcp_wrench_fs = iport_cart_wrench.read(wrench);
 	   if (est_ext_tcp_wrench_fs == RTT::NewData){
@@ -60,20 +66,34 @@ void KukaFriGravCompRTNET::updateHook(){
 		   estExtTcpWrench[0] = v.x();
 		   estExtTcpWrench[1] = v.y();
 		   estExtTcpWrench[2] = v.z();
-		   estExtTcpWrench[3] = wrench.torque.x;
-		   estExtTcpWrench[4] = wrench.torque.y;
-		   estExtTcpWrench[5] = wrench.torque.z;
+		   //estExtTcpWrench[3] = wrench.torque.x;
+		   //estExtTcpWrench[4] = wrench.torque.y;
+		   //estExtTcpWrench[5] = wrench.torque.z;
 		   log_estExtTcpWrench.push_back(estExtTcpWrench);
+		   if(trajectory == 1){
+			   if((extForceMean.getMean(v.Norm()) > forceThreshold)){
+				   if(pauseTrajectory == 0){
+					   std::cout << "GravComp\n";
+					   pauseTrajectory = 1;
+				   }
+			   }
+			   else{
+				   if(pauseTrajectory == 1){
+					   std::cout << "Traj\n";
+					   pauseTrajectory = 0;
+				   }
+			   }
+		   }
 	   }
    }
    else{
-	   estExtTcpWrench.assign(6, 0.0);
+	   estExtTcpWrench.assign(3, 0.0);
 
    }
 
    //if command mode
    if(fri_frm_krl.intData[0] == 1){ 
-	   if(trajectory == 1){
+	   if((trajectory == 1) && (pauseTrajectory == 0)){
 		   if(m_joint_pos[2] > 1.0471975512 && direction == 1){
 			   direction = -1;
 		   }
@@ -81,7 +101,7 @@ void KukaFriGravCompRTNET::updateHook(){
 			   direction = 1;
 		   }
 
-		   tau[2] = mean.getMean( 2 * direction );
+		   tau[2] = tauMean.getMean( 2 * direction );
 		   log_tau.push_back(tau);
 	   }
 	   else{
@@ -101,8 +121,12 @@ void KukaFriGravCompRTNET::setTrajectory(int traj){
 	trajectory = traj;
 }
 
-void KukaFriGravCompRTNET::setNumObs(unsigned int numObs){
-    mean.setNumObs(numObs);
+void KukaFriGravCompRTNET::setNumObsTau(unsigned int numObs){
+    tauMean.setNumObs(numObs);
+}
+
+void KukaFriGravCompRTNET::setNumObsForce(unsigned int numObs){
+    extForceMean.setNumObs(numObs);
 }
 
 void KukaFriGravCompRTNET::connectPorts(){
@@ -216,6 +240,10 @@ void KukaFriGravCompRTNET::dumpLog(std::string filename, std::string filename2){
 
 	of2.close();
 	return;
+}
+
+void KukaFriGravCompRTNET::setFThreshold(double t){
+	forceThreshold = t;
 }
 
 ORO_CREATE_COMPONENT(KukaFriGravCompRTNET)

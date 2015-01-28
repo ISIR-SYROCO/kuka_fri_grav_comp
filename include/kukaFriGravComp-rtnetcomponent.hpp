@@ -24,13 +24,15 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 
         void updateHook();
 
-        void setNumObs(unsigned int numObs);
+        void setNumObsTau(unsigned int numObs);
+        void setNumObsForce(unsigned int numObs);
 
 		void initializeCommand();
 
 		void connectPorts();
 
 		void dumpLog(std::string filename, std::string filename2);
+		void setFThreshold(double t);
 
         std::vector<double> m_joint_vel_command;
 		std::vector<double> m_joint_pos;
@@ -41,12 +43,17 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 
 		std::vector< std::vector<double> > log_estExtTcpWrench;
 
-        MovingMean mean;
+        MovingMean tauMean;
+        MovingMean extForceMean;
+
+		double forceThreshold;
+
         int direction;
 
 		int iteration;
 
 		int trajectory;
+		int pauseTrajectory;
 };
 
 
