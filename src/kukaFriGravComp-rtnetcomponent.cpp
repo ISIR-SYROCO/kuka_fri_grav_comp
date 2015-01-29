@@ -116,7 +116,7 @@ void KukaFriGravCompRTNET::updateHook(){
 	   }
 	   else{
 		   if((trajectory == 1) && (pauseTrajectory == 1)){
-			   tau[2] = tauMean.getMean( 0.0 );
+			   tau[3] = tauMean.getMean( 0.0 );
 			   tau[4] = tauMean.getMean( 0.0 );
 		   }
 		   std::fill(tau.begin(), tau.end(), 0.0);
