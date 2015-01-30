@@ -7,6 +7,7 @@
 #include <rtt/Component.hpp>
 #include <iostream>
 #include <fstream>
+#include <rtt/os/TimeService.hpp>
 
 KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetExampleAbstract(name){
     this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
@@ -20,6 +21,8 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addOperation("connectPorts", &KukaFriGravCompRTNET::connectPorts, this, RTT::OwnThread);
     this->addOperation("dumpLog", &KukaFriGravCompRTNET::dumpLog, this, RTT::OwnThread);
 
+	exitGravCompDelay = 2;
+	startGravCompTime = 0;
 
     direction = 1;
     setNumObsTau(2000);
@@ -51,7 +54,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 }
 
 void KukaFriGravCompRTNET::updateHook(){
-   fri_frm_krl = m_fromFRI.get(); 
+   fri_frm_krl = m_fromKRL.get(); 
 
    RTT::FlowStatus joint_state_fs = iport_msr_joint_pos.read(m_joint_pos);
    RTT::FlowStatus cart_pos_fs = iport_cart_pos.read(m_cart_pos);
@@ -85,10 +88,12 @@ void KukaFriGravCompRTNET::updateHook(){
 				   if(gravComp == 0){
 					   //std::cout << "GravComp\n";
 					   gravComp = 1;
+					   startGravCompTime = RTT::os::TimeService::Instance()->getNSecs()/1e9;
 				   }
 			   }
 			   else{
-				   if(gravComp == 1){
+				   long int currentTime = RTT::os::TimeService::Instance()->getNSecs()/1e9;
+				   if(gravComp == 1 && (currentTime - startGravCompTime) > 2){
 					   //std::cout << "Traj\n";
 					   gravComp = 0;
 				   }
