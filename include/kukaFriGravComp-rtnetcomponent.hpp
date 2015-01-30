@@ -10,6 +10,7 @@
 
 #include <friRTNetExampleAbstract.hpp>
 #include <Eigen/Dense>
+#include <std_msgs/Float64.h>
 
 #include <movingMean.hpp>
 
@@ -34,6 +35,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 
 		void dumpLog(std::string filename, std::string filename2);
 		void setFThreshold(double t);
+		void setLoadThreshold(double l);
 
         std::vector<double> m_joint_vel_command;
 		std::vector<double> m_joint_pos;
@@ -50,6 +52,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
         MovingMean extForceMean;
 
 		double forceThreshold;
+		double loadThreshold;
 
         int direction;
 
@@ -63,6 +66,11 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		int exitGravCompDelay;
 
 		long int startGravCompTime;
+
+		RTT::InputPort< std::vector<double> > iport_ati_values;
+		std::vector<double> force_sensor_value;
+
+		RTT::OutputPort<std_msgs::Float64> oport_weight;
 };
 
 

@@ -1,28 +1,46 @@
 import("lwr_fri")
 import("kuka_fri_grav_comp")
+import("rtt_rosnode")
+import("ATISensor")
+import("DirectKinematics")
 
 loadComponent("lwr", "lwr_fri::FRIRTNetComponent")
 loadComponent("KukaDemo", "KukaFriGravCompRTNET")
+loadComponent("ATI", "ATISensor")
+loadComponent("dKinematics", "DirectKinematics")
 
 setActivity("lwr", 0, 99, ORO_SCHED_RT)
 setActivity("KukaDemo", 0.002, 90, ORO_SCHED_RT)
+setActivity("ATI", 0.002, 10, ORO_SCHED_RT)
+setActivity("dKinematics", 0, 30, ORO_SCHED_RT)
 
 lwr.local_port = 49938
 lwr.configure
 
+ATI.setWebserver(0)
+
 connectPeers("lwr","KukaDemo")
 KukaDemo.setPeer("lwr")
 
+//Port connection
 var ConnPolicy cp
 //Only last data written is accessible
 cp.type = DATA
 //Use mutexes
 cp.lock_policy = LOCKED
 
-//Port connection
-connect("lwr.events", "KukaDemo.Events_i", cp)
 KukaDemo.connectPorts()
+connect("dKinematics.sortie","ATI.transforms_i",cp)
+connect("lwr.msrJntPos","dKinematics.JntPos_i", cp)
+connect("ATI.FTvalues","KukaDemo.ati_sensor")
 
+stream("KukaDemo.weight", ros.topic("/weight"))
+
+ATI.configure
+ATI.start
+
+dKinematics.configure
+dKinematics.start
 
 KukaDemo.configure
 KukaDemo.friReset
@@ -31,6 +49,7 @@ lwr.control_mode=7
 lwr.start
 
 KukaDemo.setFThreshold(3.0)
+KukaDemo.setLoadThreshold(0.5k
 
 //KukaDemo.setControlStrategy(7)
 //KukaDemo.start

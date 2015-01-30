@@ -10,7 +10,11 @@
 #include <rtt/os/TimeService.hpp>
 
 KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetExampleAbstract(name){
+    this->addPort("weight", oport_weight);
+    this->addPort("ati_sensor", iport_ati_values);
+
     this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
+    this->addOperation("setLoadThreshold", &KukaFriGravCompRTNET::setLoadThreshold, this, RTT::OwnThread);
     this->addOperation("setNumObsTau", &KukaFriGravCompRTNET::setNumObsTau, this, RTT::OwnThread);
     this->addOperation("setNumObsForce", &KukaFriGravCompRTNET::setNumObsForce, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
@@ -35,6 +39,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 	iteration = 0;
 
 	forceThreshold = 5.0;
+	loadThreshold = 0.5;
 
     m_joint_vel_command.resize(LWRDOF);
     std::fill(m_joint_vel_command.begin(), m_joint_vel_command.end(), 0.0);
@@ -51,6 +56,9 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 	estExtTcpWrench.resize(3);
     std::fill(estExtTcpWrench.begin(), estExtTcpWrench.end(), 0.0);
 
+	force_sensor_value.resize(8);
+    std::fill(force_sensor_value.begin(), force_sensor_value.end(), 0.0);
+
 }
 
 void KukaFriGravCompRTNET::updateHook(){
@@ -58,6 +66,21 @@ void KukaFriGravCompRTNET::updateHook(){
 
    RTT::FlowStatus joint_state_fs = iport_msr_joint_pos.read(m_joint_pos);
    RTT::FlowStatus cart_pos_fs = iport_cart_pos.read(m_cart_pos);
+
+   RTT::FlowStatus force_sensor_fs = iport_ati_values.read(force_sensor_value);
+
+   double fz = force_sensor_value[2];
+   double weight = fz / 9.80665;
+
+   std_msgs::Float64 weight_msg;
+   weight_msg.data = weight;
+   oport_weight.write(weight_msg);
+
+   double normWeight = sqrt(weight*weight);
+
+   if(sqrt((current_load - normWeight) * (current_load - normWeight)) > loadThreshold){
+	   //setLoad(normWeight);
+   }
 
    if(iport_est_ext_joint_trq.connected()){
 	   RTT::FlowStatus est_tau_fs = iport_est_ext_joint_trq.read(est_tau);
@@ -117,12 +140,10 @@ void KukaFriGravCompRTNET::updateHook(){
 		   }
 
 		   tau[3] = tauMean.getMean( 2 * direction );
-		   tau[4] = tauMean.getMean( 2 * direction );
 	   }
 	   else{
 		   if((trajectory == 1) && (gravComp == 1)){
 			   tau[3] = tauMean.getMean( 0.0 );
-			   tau[4] = tauMean.getMean( 0.0 );
 		   }
 		   std::fill(tau.begin(), tau.end(), 0.0);
 	   }
@@ -154,6 +175,7 @@ void KukaFriGravCompRTNET::setNumObsForce(unsigned int numObs){
 }
 
 void KukaFriGravCompRTNET::connectPorts(){
+	connectIEvents();
 	connectIEstExtJntTrq();
     connectIMsrJntPos();
 	connectODesJntImpedance();
@@ -281,6 +303,10 @@ void KukaFriGravCompRTNET::dumpLog(std::string filename, std::string filename2){
 
 void KukaFriGravCompRTNET::setFThreshold(double t){
 	forceThreshold = t;
+}
+
+void KukaFriGravCompRTNET::setLoadThreshold(double l){
+	loadThreshold = l;
 }
 
 ORO_CREATE_COMPONENT(KukaFriGravCompRTNET)
