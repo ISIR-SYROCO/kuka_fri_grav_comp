@@ -58,7 +58,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		int block;
 
 		int trajectory;
-		int pauseTrajectory;
+		int gravComp;
 };
 
 

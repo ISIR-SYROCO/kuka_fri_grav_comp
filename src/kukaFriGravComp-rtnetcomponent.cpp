@@ -27,7 +27,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 
 	block = 0;
 	trajectory = 0;
-	pauseTrajectory = 0;
+	gravComp = 0;
 
 	iteration = 0;
 
@@ -71,7 +71,7 @@ void KukaFriGravCompRTNET::updateHook(){
 				   (double)m_cart_pos.orientation.y,
 				   (double)m_cart_pos.orientation.z,
 				   (double)m_cart_pos.orientation.w);
-		   v = cart_orientation.Inverse() * v;
+		   //v = cart_orientation.Inverse() * v;
 
 		   estExtTcpWrench[0] = v.x();
 		   estExtTcpWrench[1] = v.y();
@@ -82,15 +82,15 @@ void KukaFriGravCompRTNET::updateHook(){
 		   log_estExtTcpWrench.push_back(estExtTcpWrench);
 		   if(trajectory == 1){
 			   if((extForceMean.getMean(v.Norm()) > forceThreshold)){
-				   if(pauseTrajectory == 0){
+				   if(gravComp == 0){
 					   //std::cout << "GravComp\n";
-					   pauseTrajectory = 1;
+					   gravComp = 1;
 				   }
 			   }
 			   else{
-				   if(pauseTrajectory == 1){
+				   if(gravComp == 1){
 					   //std::cout << "Traj\n";
-					   pauseTrajectory = 0;
+					   gravComp = 0;
 				   }
 			   }
 		   }
@@ -103,7 +103,7 @@ void KukaFriGravCompRTNET::updateHook(){
 
    //if command mode
    if(fri_frm_krl.intData[0] == 1){ 
-	   if((trajectory == 1) && (pauseTrajectory == 0)){
+	   if((trajectory == 1) && (gravComp == 0)){
 		   if(m_joint_pos[2] > 0.41975512 && direction == 1){
 			   direction = -1;
 		   }
@@ -115,7 +115,7 @@ void KukaFriGravCompRTNET::updateHook(){
 		   tau[4] = tauMean.getMean( 2 * direction );
 	   }
 	   else{
-		   if((trajectory == 1) && (pauseTrajectory == 1)){
+		   if((trajectory == 1) && (gravComp == 1)){
 			   tau[3] = tauMean.getMean( 0.0 );
 			   tau[4] = tauMean.getMean( 0.0 );
 		   }
@@ -125,10 +125,8 @@ void KukaFriGravCompRTNET::updateHook(){
 	   oport_add_joint_trq.write(tau);
 	   log_tau.push_back(tau);
    }
-   if((joint_state_fs == RTT::NewData)){
-	   if(block == 0){
-		   oport_joint_position.write(m_joint_pos);
-	   }
+   if(block == 0){
+	   oport_joint_position.write(m_joint_pos);
    }
 
    iteration++;
