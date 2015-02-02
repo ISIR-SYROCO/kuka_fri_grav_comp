@@ -26,6 +26,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
         void updateHook();
 
         void setNumObsTau(unsigned int numObs);
+        void setTau(double t);
         void setNumObsForce(unsigned int numObs);
 
 		void initializeCommand();
@@ -63,6 +64,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		int exitGravCompDelay;
 
 		long int startGravCompTime;
+	double tau_cmd;
 };
 
 

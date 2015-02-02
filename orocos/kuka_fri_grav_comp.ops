@@ -30,7 +30,8 @@ KukaDemo.friReset
 lwr.control_mode=7
 lwr.start
 
-KukaDemo.setFThreshold(3.0)
+KukaDemo.setFThreshold(8.0)
+KukaDemo.setTau(2.0)
 
 //KukaDemo.setControlStrategy(7)
 //KukaDemo.start
