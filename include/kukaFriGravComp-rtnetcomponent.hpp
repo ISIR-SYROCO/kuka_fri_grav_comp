@@ -27,6 +27,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
         void updateHook();
 
         void setNumObsTau(unsigned int numObs);
+        void setNumObsLoad(unsigned int numObs);
         void setTau(double t);
         void setNumObsForce(unsigned int numObs);
 
@@ -51,6 +52,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 
         MovingMean tauMean;
         MovingMean extForceMean;
+        MovingMean loadMean;
 
 		double forceThreshold;
 		double loadThreshold;

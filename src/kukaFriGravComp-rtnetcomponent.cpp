@@ -16,6 +16,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
     this->addOperation("setLoadThreshold", &KukaFriGravCompRTNET::setLoadThreshold, this, RTT::OwnThread);
     this->addOperation("setNumObsTau", &KukaFriGravCompRTNET::setNumObsTau, this, RTT::OwnThread);
+    this->addOperation("setNumObsLoad", &KukaFriGravCompRTNET::setNumObsLoad, this, RTT::OwnThread);
     this->addOperation("setTau", &KukaFriGravCompRTNET::setTau, this, RTT::OwnThread);
     this->addOperation("setNumObsForce", &KukaFriGravCompRTNET::setNumObsForce, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
@@ -32,6 +33,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     direction = 1;
     setNumObsTau(2000);
     setNumObsForce(40);
+    setNumObsLoad(200);
 
 	tau_cmd = 4.0;
 	block = 0;
@@ -81,7 +83,10 @@ void KukaFriGravCompRTNET::updateHook(){
    oport_weight.write(weight_msg);
 
    if(sqrt((current_load - normWeight) * (current_load - normWeight)) > loadThreshold){
-	   setLoad(normWeight+0.750);
+	   setLoad(loadMean.getMean(normWeight+0.750));
+   }
+   else{
+       setLoad(loadMean.getMean(0.750));
    }
 
    if(iport_est_ext_joint_trq.connected()){
@@ -174,6 +179,10 @@ void KukaFriGravCompRTNET::setTau(double t){
 
 void KukaFriGravCompRTNET::setNumObsTau(unsigned int numObs){
     tauMean.setNumObs(numObs);
+}
+
+void KukaFriGravCompRTNET::setNumObsLoad(unsigned int numObs){
+    loadMean.setNumObs(numObs);
 }
 
 void KukaFriGravCompRTNET::setNumObsForce(unsigned int numObs){

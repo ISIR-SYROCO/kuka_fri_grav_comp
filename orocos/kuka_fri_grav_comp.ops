@@ -50,6 +50,7 @@ lwr.start
 
 KukaDemo.setFThreshold(12.0)
 KukaDemo.setLoadThreshold(0.3)
+KukaDemo.setNumObsLoad(50)
 KukaDemo.setTau(2.0)
 KukaDemo.setTrajectory(1)
 
