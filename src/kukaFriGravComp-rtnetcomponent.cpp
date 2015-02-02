@@ -11,6 +11,8 @@
 
 KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetExampleAbstract(name){
     this->addPort("weight", oport_weight);
+    this->addPort("load", oport_load);
+    this->addPort("normforce_robot", oport_normforce_robot_frame);
     this->addPort("ati_sensor", iport_ati_values);
 
     this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
@@ -77,17 +79,25 @@ void KukaFriGravCompRTNET::updateHook(){
    double weight = fz / 9.80665;
 
    double normWeight = sqrt(weight*weight);
+   double normForce = sqrt(force_sensor_value[0]*force_sensor_value[0] / 9.80665 + 
+		   force_sensor_value[1]*force_sensor_value[1] / 9.80665 +
+		   force_sensor_value[2]*force_sensor_value[2] / 9.80665);
 
-   std_msgs::Float64 weight_msg;
    weight_msg.data = normWeight;
    oport_weight.write(weight_msg);
 
+   force_norm_msg.data = normForce;
+   oport_normforce_robot_frame.write(force_norm_msg);
+
    if(sqrt((current_load - normWeight) * (current_load - normWeight)) > loadThreshold){
-	   setLoad(loadMean.getMean(normWeight+0.750));
+	   load_msg.data = loadMean.getMean(normForce+0.750);
+	   setLoad(load_msg.data);
    }
    else{
-       setLoad(loadMean.getMean(0.750));
+	   load_msg.data = loadMean.getMean(0.750);
+       setLoad(load_msg.data);
    }
+   oport_load.write(load_msg);
 
    if(iport_est_ext_joint_trq.connected()){
 	   RTT::FlowStatus est_tau_fs = iport_est_ext_joint_trq.read(est_tau);

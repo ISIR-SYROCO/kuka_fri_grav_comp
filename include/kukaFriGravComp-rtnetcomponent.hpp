@@ -74,7 +74,12 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		std::vector<double> force_sensor_value;
 
 		RTT::OutputPort<std_msgs::Float64> oport_weight;
+		RTT::OutputPort<std_msgs::Float64> oport_load;
+		RTT::OutputPort<std_msgs::Float64> oport_normforce_robot_frame;
 	double tau_cmd;
+   std_msgs::Float64 load_msg;
+   std_msgs::Float64 force_norm_msg;
+   std_msgs::Float64 weight_msg;
 };
 
 
