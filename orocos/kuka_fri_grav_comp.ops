@@ -10,7 +10,7 @@ loadComponent("ATI", "ATISensor")
 loadComponent("dKinematics", "DirectKinematics")
 
 setActivity("lwr", 0, 99, ORO_SCHED_RT)
-setActivity("KukaDemo", 0.002, 90, ORO_SCHED_RT)
+setActivity("KukaDemo", 0.004, 90, ORO_SCHED_RT)
 setActivity("ATI", 0.002, 10, ORO_SCHED_RT)
 setActivity("dKinematics", 0, 30, ORO_SCHED_RT)
 
@@ -48,8 +48,9 @@ KukaDemo.friReset
 lwr.control_mode=7
 lwr.start
 
-KukaDemo.setFThreshold(3.0)
-KukaDemo.setLoadThreshold(0.5k
+KukaDemo.setFThreshold(12.0)
+KukaDemo.setTau(2.0)
+KukaDemo.setTrajectory(1)
 
 //KukaDemo.setControlStrategy(7)
 //KukaDemo.start

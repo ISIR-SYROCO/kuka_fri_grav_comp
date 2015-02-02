@@ -27,6 +27,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
         void updateHook();
 
         void setNumObsTau(unsigned int numObs);
+        void setTau(double t);
         void setNumObsForce(unsigned int numObs);
 
 		void initializeCommand();
@@ -71,6 +72,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		std::vector<double> force_sensor_value;
 
 		RTT::OutputPort<std_msgs::Float64> oport_weight;
+	double tau_cmd;
 };
 
 

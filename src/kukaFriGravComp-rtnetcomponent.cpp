@@ -16,6 +16,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
     this->addOperation("setLoadThreshold", &KukaFriGravCompRTNET::setLoadThreshold, this, RTT::OwnThread);
     this->addOperation("setNumObsTau", &KukaFriGravCompRTNET::setNumObsTau, this, RTT::OwnThread);
+    this->addOperation("setTau", &KukaFriGravCompRTNET::setTau, this, RTT::OwnThread);
     this->addOperation("setNumObsForce", &KukaFriGravCompRTNET::setNumObsForce, this, RTT::OwnThread);
     this->addOperation("setTrajectory", &KukaFriGravCompRTNET::setTrajectory, this, RTT::OwnThread);
     this->addOperation("setBlock", &KukaFriGravCompRTNET::setBlock, this, RTT::OwnThread);
@@ -32,6 +33,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     setNumObsTau(2000);
     setNumObsForce(40);
 
+	tau_cmd = 4.0;
 	block = 0;
 	trajectory = 0;
 	gravComp = 0;
@@ -72,14 +74,14 @@ void KukaFriGravCompRTNET::updateHook(){
    double fz = force_sensor_value[2];
    double weight = fz / 9.80665;
 
-   std_msgs::Float64 weight_msg;
-   weight_msg.data = weight;
-   oport_weight.write(weight_msg);
-
    double normWeight = sqrt(weight*weight);
 
+   std_msgs::Float64 weight_msg;
+   weight_msg.data = normWeight;
+   oport_weight.write(weight_msg);
+
    if(sqrt((current_load - normWeight) * (current_load - normWeight)) > loadThreshold){
-	   //setLoad(normWeight);
+	   setLoad(normWeight+0.750);
    }
 
    if(iport_est_ext_joint_trq.connected()){
@@ -97,7 +99,7 @@ void KukaFriGravCompRTNET::updateHook(){
 				   (double)m_cart_pos.orientation.y,
 				   (double)m_cart_pos.orientation.z,
 				   (double)m_cart_pos.orientation.w);
-		   //v = cart_orientation.Inverse() * v;
+		   v = cart_orientation.Inverse() * v;
 
 		   estExtTcpWrench[0] = v.x();
 		   estExtTcpWrench[1] = v.y();
@@ -132,18 +134,18 @@ void KukaFriGravCompRTNET::updateHook(){
    //if command mode
    if(fri_frm_krl.intData[0] == 1){ 
 	   if((trajectory == 1) && (gravComp == 0)){
-		   if(m_joint_pos[2] > 0.41975512 && direction == 1){
+		   if(m_joint_pos[2] > 0.21975512 && direction == 1){
 			   direction = -1;
 		   }
-		   else if( m_joint_pos[2] < -0.41975512 && direction == -1){
+		   else if( m_joint_pos[2] < -0.21975512 && direction == -1){
 			   direction = 1;
 		   }
 
-		   tau[3] = tauMean.getMean( 2 * direction );
+		   tau[2] = tauMean.getMean( tau_cmd * direction );
 	   }
 	   else{
 		   if((trajectory == 1) && (gravComp == 1)){
-			   tau[3] = tauMean.getMean( 0.0 );
+			   tau[2] = tauMean.getMean( 0.0 );
 		   }
 		   std::fill(tau.begin(), tau.end(), 0.0);
 	   }
@@ -164,6 +166,10 @@ void KukaFriGravCompRTNET::setTrajectory(int traj){
 
 void KukaFriGravCompRTNET::setBlock(int value){
 	block = value;
+}
+
+void KukaFriGravCompRTNET::setTau(double t){
+	tau_cmd = t;
 }
 
 void KukaFriGravCompRTNET::setNumObsTau(unsigned int numObs){
