@@ -5,7 +5,7 @@ loadComponent("lwr", "lwr_fri::FRIRTNetComponent")
 loadComponent("KukaDemo", "KukaFriGravCompRTNET")
 
 setActivity("lwr", 0, 99, ORO_SCHED_RT)
-setActivity("KukaDemo", 0.002, 90, ORO_SCHED_RT)
+setActivity("KukaDemo", 0.004, 90, ORO_SCHED_RT)
 
 lwr.local_port = 49938
 lwr.configure
@@ -30,8 +30,9 @@ KukaDemo.friReset
 lwr.control_mode=7
 lwr.start
 
-KukaDemo.setFThreshold(8.0)
+KukaDemo.setFThreshold(12.0)
 KukaDemo.setTau(2.0)
+KukaDemo.setTrajectory(1)
 
 //KukaDemo.setControlStrategy(7)
 //KukaDemo.start
