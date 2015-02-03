@@ -171,10 +171,10 @@ void KukaFriGravCompRTNET::updateHook(){
    //if command mode
    if(fri_frm_krl.intData[0] == 1){ 
 	   if((trajectory == 1) && (gravComp == 0)){
-		   if(m_joint_pos[2] > 0.21975512 && direction == 1){
+		   if(m_joint_pos[2] > 0.41975512 && direction == 1){
 			   direction = -1;
 		   }
-		   else if( m_joint_pos[2] < -0.21975512 && direction == -1){
+		   else if( m_joint_pos[2] < -0.41975512 && direction == -1){
 			   direction = 1;
 		   }
 
