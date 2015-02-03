@@ -72,7 +72,7 @@ KukaDemo.setLoadThreshold(0.4)
 KukaDemo.setDefaultLoad(0.760)
 KukaDemo.setNumObsLoad(1)
 KukaDemo.setNumObsTau(50)
-KukaDemo.setTau(12)
+KukaDemo.setTau(6)
 KukaDemo.setTrajectory(1)
 
 //KukaDemo.setControlStrategy(7)
