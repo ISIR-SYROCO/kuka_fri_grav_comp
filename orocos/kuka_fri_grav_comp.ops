@@ -3,16 +3,20 @@ import("kuka_fri_grav_comp")
 import("rtt_rosnode")
 import("ATISensor")
 import("directKinematics")
+import("lbr4_state_publisher");
+
 
 loadComponent("lwr", "lwr_fri::FRIRTNetComponent")
 loadComponent("KukaDemo", "KukaFriGravCompRTNET")
 loadComponent("ATI", "ATISensor")
 loadComponent("dKinematics", "DirectKinematics")
+loadComponent("LBR4StatePub", "LBR4StatePublisher");
 
 setActivity("lwr", 0, 99, ORO_SCHED_RT)
 setActivity("KukaDemo", 0.004, 90, ORO_SCHED_RT)
 setActivity("ATI", 0.002, 10, ORO_SCHED_RT)
 setActivity("dKinematics", 0, 30, ORO_SCHED_RT)
+setActivity("LBR4StatePub", 0.01, 1, ORO_SCHED_RT);
 
 lwr.local_port = 49938
 lwr.configure
@@ -20,14 +24,20 @@ lwr.configure
 ATI.setWebserver(0)
 
 connectPeers("lwr","KukaDemo")
+connectPeers("lwr","LBR4StatePub");
 KukaDemo.setPeer("lwr")
-
+LBR4StatePub.setPeer("lwr");
 //Port connection
 var ConnPolicy cp
 //Only last data written is accessible
 cp.type = DATA
 //Use mutexes
 cp.lock_policy = LOCKED
+
+connect("lwr.events", "LBR4StatePub.Events_i", cp);
+connect("lwr.msrJntPos", "LBR4StatePub.MsrJntPos_i", cp);
+connect("lwr.msrJntVel","LBR4StatePub.MsrJntVel_i",cp);
+stream("LBR4StatePub.JointStates", ros.topic("/joint_states"));
 
 dKinematics.configure
 KukaDemo.connectPorts()
@@ -45,6 +55,9 @@ stream("KukaDemo.load", ros.topic("/load"))
 
 ATI.configure
 ATI.start
+
+LBR4StatePub.configure
+LBR4StatePub.start
 
 dKinematics.start
 
