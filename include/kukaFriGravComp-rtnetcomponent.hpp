@@ -29,6 +29,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
         void setNumObsTau(unsigned int numObs);
         void setNumObsLoad(unsigned int numObs);
         void setTau(double t);
+        void setDefaultLoad(double l);
         void setNumObsForce(unsigned int numObs);
 
 		void initializeCommand();
@@ -66,6 +67,8 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		int trajectory;
 		int gravComp;
 
+        double default_load;
+
 		int exitGravCompDelay;
 
 		long int startGravCompTime;
@@ -77,7 +80,7 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		RTT::OutputPort<std_msgs::Float64> oport_load;
 		RTT::OutputPort<std_msgs::Float64> oport_normforce_robot_frame;
 	double tau_cmd;
-   std_msgs::Float64 load_msg;
+   
    std_msgs::Float64 force_norm_msg;
    std_msgs::Float64 weight_msg;
 };

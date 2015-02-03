@@ -9,6 +9,9 @@
 #include <fstream>
 #include <rtt/os/TimeService.hpp>
 
+
+
+
 KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetExampleAbstract(name){
     this->addPort("weight", oport_weight);
     this->addPort("load", oport_load);
@@ -16,6 +19,7 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addPort("ati_sensor", iport_ati_values);
 
     this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
+    this->addOperation("setDefaultLoad", &KukaFriGravCompRTNET::setDefaultLoad, this, RTT::OwnThread);
     this->addOperation("setLoadThreshold", &KukaFriGravCompRTNET::setLoadThreshold, this, RTT::OwnThread);
     this->addOperation("setNumObsTau", &KukaFriGravCompRTNET::setNumObsTau, this, RTT::OwnThread);
     this->addOperation("setNumObsLoad", &KukaFriGravCompRTNET::setNumObsLoad, this, RTT::OwnThread);
@@ -31,6 +35,8 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
 
 	exitGravCompDelay = 2;
 	startGravCompTime = 0;
+
+    default_load = 0.770;
 
     direction = 1;
     setNumObsTau(2000);
@@ -75,13 +81,15 @@ void KukaFriGravCompRTNET::updateHook(){
 
    RTT::FlowStatus force_sensor_fs = iport_ati_values.read(force_sensor_value);
 
+   double fx = force_sensor_value[0];
+   double fy = force_sensor_value[1];
    double fz = force_sensor_value[2];
    double weight = fz / 9.80665;
 
    double normWeight = sqrt(weight*weight);
-   double normForce = sqrt(force_sensor_value[0]*force_sensor_value[0] / 9.80665 + 
-		   force_sensor_value[1]*force_sensor_value[1] / 9.80665 +
-		   force_sensor_value[2]*force_sensor_value[2] / 9.80665);
+   double normForce = sqrt(force_sensor_value[0]*force_sensor_value[0] / (9.80665*9.80665) + 
+		   force_sensor_value[1]*force_sensor_value[1] / (9.80665*9.80665) +
+		   force_sensor_value[2]*force_sensor_value[2] / (9.80665*9.80665));
 
    weight_msg.data = normWeight;
    oport_weight.write(weight_msg);
@@ -89,13 +97,17 @@ void KukaFriGravCompRTNET::updateHook(){
    force_norm_msg.data = normForce;
    oport_normforce_robot_frame.write(force_norm_msg);
 
-   if(sqrt((current_load - normWeight) * (current_load - normWeight)) > loadThreshold){
-	   load_msg.data = loadMean.getMean(normForce+0.750);
-	   setLoad(load_msg.data);
-   }
-   else{
-	   load_msg.data = loadMean.getMean(0.750);
-       setLoad(load_msg.data);
+   std_msgs::Float64 load_msg;
+   double new_load = 0.0;
+   if(sqrt((current_load - normForce) * (current_load - normForce)) > loadThreshold){
+       if(normForce > loadThreshold){
+           new_load = loadMean.getMean(normForce+default_load);
+       }
+       else{
+           new_load = loadMean.getMean(default_load);
+       }
+       load_msg.data = new_load;
+       setLoad(new_load);
    }
    oport_load.write(load_msg);
 
@@ -164,7 +176,21 @@ void KukaFriGravCompRTNET::updateHook(){
 		   }
 		   std::fill(tau.begin(), tau.end(), 0.0);
 	   }
-
+		
+		
+		
+		// Ajout frottement visqueux
+		Eigen::Matrix<double, 7, 1> q_dot; 			         //Joint velocities
+		std::vector<double> q_dot_fri(7);
+		RTT::FlowStatus joint_vel_fs = iport_msr_joint_vel.read(q_dot_fri);
+        if(joint_vel_fs == RTT::NewData){    
+        	for(unsigned int i = 0; i < 7; i++){
+            	q_dot[i] = q_dot_fri[i];
+            	tau[i] -= 10*q_dot_fri[i];
+        	}
+        }
+    		
+		
 	   oport_add_joint_trq.write(tau);
 	   log_tau.push_back(tau);
    }
@@ -328,6 +354,10 @@ void KukaFriGravCompRTNET::dumpLog(std::string filename, std::string filename2){
 
 void KukaFriGravCompRTNET::setFThreshold(double t){
 	forceThreshold = t;
+}
+
+void KukaFriGravCompRTNET::setDefaultLoad(double l){
+	default_load = l;
 }
 
 void KukaFriGravCompRTNET::setLoadThreshold(double l){
