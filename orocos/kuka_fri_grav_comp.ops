@@ -35,6 +35,10 @@ connect("dKinematics.sortie","ATI.transforms_i",cp)
 connect("lwr.msrJntPos","dKinematics.JntPos_i", cp)
 connect("ATI.FTvalues","KukaDemo.ati_sensor", cp)
 
+stream("KukaDemo.distance_port",ros.topic("/sk_closest/distance_frame"));
+stream("KukaDemo.distance_out",ros.topic("/distance_out"));
+stream("KukaDemo.tau2_out",ros.topic("/tau2"));
+stream("KukaDemo.res_C_out",ros.topic("/resC"));
 stream("KukaDemo.weight", ros.topic("/weight"))
 stream("KukaDemo.normforce_robot", ros.topic("/normforce"))
 stream("KukaDemo.load", ros.topic("/load"))
@@ -51,10 +55,11 @@ lwr.control_mode=7
 lwr.start
 
 KukaDemo.setFThreshold(12.0)
-KukaDemo.setLoadThreshold(0.5)
+KukaDemo.setLoadThreshold(0.4)
 KukaDemo.setDefaultLoad(0.760)
 KukaDemo.setNumObsLoad(1)
-KukaDemo.setTau(2.0)
+KukaDemo.setNumObsTau(50)
+KukaDemo.setTau(12)
 KukaDemo.setTrajectory(1)
 
 //KukaDemo.setControlStrategy(7)

@@ -11,7 +11,10 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # and installs in the directory lib/orocos/kuka_send_joint_positions/
 #
 orocos_library(movingMean movingMean.cpp)
-orocos_component(KukaFriGravCompRTNET kukaFriGravComp-rtnetcomponent.cpp) # ...you may add multiple source files
+orocos_component(KukaFriGravCompRTNET kukaFriGravComp-rtnetcomponent.cpp
+									  Compute_C_limit.cpp
+									  Maximum.cpp
+									  Absolute.cpp) # ...you may add multiple source files
 target_link_libraries(KukaFriGravCompRTNET movingMean)
 #
 # You may add multiple orocos_component statements.

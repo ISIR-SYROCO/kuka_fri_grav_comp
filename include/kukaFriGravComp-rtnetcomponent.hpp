@@ -11,6 +11,7 @@
 #include <friRTNetExampleAbstract.hpp>
 #include <Eigen/Dense>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
 
 #include <movingMean.hpp>
 
@@ -76,6 +77,14 @@ class KukaFriGravCompRTNET : public FriRTNetExampleAbstract{
 		RTT::InputPort< std::vector<double> > iport_ati_values;
 		std::vector<double> force_sensor_value;
 
+        std_msgs::Float32 distance_data;
+        RTT::InputPort< std_msgs::Float32 > iport_distance;
+
+		std_msgs::Float32 tau2_trace;
+		std_msgs::Float32 res_C_trace;
+		RTT::OutputPort<std_msgs::Float32> oport_distance;
+		RTT::OutputPort<std_msgs::Float32> oport_tau2;
+		RTT::OutputPort<std_msgs::Float32> oport_res_C;
 		RTT::OutputPort<std_msgs::Float64> oport_weight;
 		RTT::OutputPort<std_msgs::Float64> oport_load;
 		RTT::OutputPort<std_msgs::Float64> oport_normforce_robot_frame;

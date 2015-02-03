@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <rtt/os/TimeService.hpp>
+#include "Compute_C_limit.h"
 
 
 
@@ -17,6 +18,10 @@ KukaFriGravCompRTNET::KukaFriGravCompRTNET(std::string const& name) : FriRTNetEx
     this->addPort("load", oport_load);
     this->addPort("normforce_robot", oport_normforce_robot_frame);
     this->addPort("ati_sensor", iport_ati_values);
+    this->addPort("distance_port", iport_distance);
+    this->addPort("distance_out", oport_distance);
+    this->addPort("tau2_out", oport_tau2);
+    this->addPort("res_C_out", oport_res_C);
 
     this->addOperation("setFThreshold", &KukaFriGravCompRTNET::setFThreshold, this, RTT::OwnThread);
     this->addOperation("setDefaultLoad", &KukaFriGravCompRTNET::setDefaultLoad, this, RTT::OwnThread);
@@ -81,6 +86,8 @@ void KukaFriGravCompRTNET::updateHook(){
 
    RTT::FlowStatus force_sensor_fs = iport_ati_values.read(force_sensor_value);
 
+   RTT::FlowStatus distance_fs = iport_distance.read(distance_data);
+
    double fx = force_sensor_value[0];
    double fy = force_sensor_value[1];
    double fz = force_sensor_value[2];
@@ -121,7 +128,7 @@ void KukaFriGravCompRTNET::updateHook(){
 	   RTT::FlowStatus est_ext_tcp_wrench_fs = iport_cart_wrench.read(wrench);
 	   if (est_ext_tcp_wrench_fs == RTT::NewData){
 
-		   KDL::Vector v(wrench.force.x, wrench.force.y, wrench.force.y);
+		   KDL::Vector v(wrench.force.x, wrench.force.y, wrench.force.z);
 		   KDL::Rotation cart_orientation = KDL::Rotation::Quaternion((double)m_cart_pos.orientation.x,
 				   (double)m_cart_pos.orientation.y,
 				   (double)m_cart_pos.orientation.z,
@@ -145,7 +152,7 @@ void KukaFriGravCompRTNET::updateHook(){
 			   }
 			   else{
 				   long int currentTime = RTT::os::TimeService::Instance()->getNSecs()/1e9;
-				   if(gravComp == 1 && (currentTime - startGravCompTime) > 2){
+				   if(gravComp == 1 && (currentTime - startGravCompTime) > 5){
 					   //std::cout << "Traj\n";
 					   gravComp = 0;
 				   }
@@ -158,6 +165,9 @@ void KukaFriGravCompRTNET::updateHook(){
 
    }
 
+   oport_distance.write(distance_data);
+   double coeff_distance = distance_data.data/4;
+
    //if command mode
    if(fri_frm_krl.intData[0] == 1){ 
 	   if((trajectory == 1) && (gravComp == 0)){
@@ -169,6 +179,31 @@ void KukaFriGravCompRTNET::updateHook(){
 		   }
 
 		   tau[2] = tauMean.getMean( tau_cmd * direction );
+		   
+		   tau2_trace.data = tau[2];
+		
+       double nxt_step_des_C          = tau[2]; 
+       double C_limit                 = compute_C_limit(1.5, 8, tau[2], 0.1, 2, distance_data.data);
+       double coeff_C_limit           = C_limit/nxt_step_des_C;   
+       double res_C          = coeff_C_limit * nxt_step_des_C;    
+       
+       res_C_trace.data = res_C;
+       oport_res_C.write(res_C_trace);
+       oport_tau2.write(tau2_trace);
+       
+       tau[2] = res_C;
+       
+       double kp = 2.0;
+       double error_j0 = kp*(1.57 - m_joint_pos[0]);
+       double error_j1 = kp*(0.35 - m_joint_pos[1]);
+       double error_j3 = kp*(-1.78 - m_joint_pos[3]);
+       double error_j4 = kp*(- m_joint_pos[4]);
+
+		tau[0] = error_j0;
+		tau[1] = error_j1;		
+		tau[3] = error_j3;	
+		tau[4] = error_j4;
+		
 	   }
 	   else{
 		   if((trajectory == 1) && (gravComp == 1)){
@@ -176,8 +211,8 @@ void KukaFriGravCompRTNET::updateHook(){
 		   }
 		   std::fill(tau.begin(), tau.end(), 0.0);
 	   }
-		
-		
+	   
+	   
 		
 		// Ajout frottement visqueux
 		Eigen::Matrix<double, 7, 1> q_dot; 			         //Joint velocities
