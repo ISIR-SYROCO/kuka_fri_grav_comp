@@ -152,7 +152,7 @@ void KukaFriGravCompRTNET::updateHook(){
 			   }
 			   else{
 				   long int currentTime = RTT::os::TimeService::Instance()->getNSecs()/1e9;
-				   if(gravComp == 1 && (currentTime - startGravCompTime) > 5){
+				   if(gravComp == 1 && (currentTime - startGravCompTime) > 10){
 					   //std::cout << "Traj\n";
 					   gravComp = 0;
 				   }
